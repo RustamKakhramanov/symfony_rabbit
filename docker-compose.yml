@@ -1,0 +1,57 @@
+version: '3.7'
+
+services:
+  rabbitmq:
+    container_name: task_rabbit
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_PASS: task
+      RABBITMQ_DEFAULT_USER: task
+      RABBITMQ_PASSWORD: task
+      RABBITMQ_USERNAME: task
+      RABBITMQ_LOG: debug
+  nginx:
+    container_name: task_nginx
+    image: nginx
+    ports:
+      - 8080:80
+    volumes:
+      - ./.docker-compose/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./.docker-compose/nginx/logs:/var/log/nginx
+      - .:/var/www/html
+  php:
+    container_name: task_php
+    build: ./.docker-compose/php
+    volumes:
+      - .:/app
+      - ./.docker-compose/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+    restart: on-failure
+    tty: true
+    depends_on:
+      - postgres
+      - rabbitmq
+
+  postgres:
+    container_name: task_postgres
+    image: postgres:12.4
+    volumes:
+      - "./.docker-compose/postgres/data:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_DB: task
+      POSTGRES_USER: task
+      POSTGRES_PASSWORD: task
+    ports:
+      - 5432:5432
+    restart: on-failure
+
+volumes:
+  dbdata:
+    external: false
+  redis-data:
+networks:
+  default:
+    driver: bridge
+    name: task_network
